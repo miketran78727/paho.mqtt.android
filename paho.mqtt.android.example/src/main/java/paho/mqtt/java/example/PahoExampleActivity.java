@@ -35,6 +35,8 @@ import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 
 import java.util.ArrayList;
+import java.util.Properties;
+import org.joda.time.DateTime;
 
 public class PahoExampleActivity extends AppCompatActivity{
     private RecyclerView mRecyclerView;
@@ -92,6 +94,41 @@ public class PahoExampleActivity extends AppCompatActivity{
             }
 
             @Override
+            public void monitor(Properties stateProps) {
+
+		Long created = (Long) stateProps.get("created");
+		DateTime dtCreated = new DateTime(created.longValue());
+                
+		Boolean connected = (Boolean) stateProps.get("connected");
+		Boolean resting = (Boolean) stateProps.get("resting");
+		
+		Long lastConnected = (Long) stateProps.get("lastConnected");
+		DateTime dtLastConnected = new DateTime(lastConnected.longValue());
+		
+		Long lastPing = (Long) stateProps.get("lastPing");
+		DateTime dtLastPing = new DateTime(lastPing.longValue());
+		
+		Long lastOutboundActivity = (Long) stateProps.get("lastOutboundActivity");
+		DateTime dtLastOutbound = new DateTime(lastOutboundActivity.longValue());
+		
+		Long lastInboundActivity = (Long) stateProps.get("lastInboundActivity");
+		DateTime dtLastInbound = new DateTime(lastInboundActivity.longValue());
+
+		Long lastReconnectActivity = (Long) stateProps.get("lastReconnectActivity");
+		DateTime dtLastReconnect = new DateTime(lastReconnectActivity.longValue());
+
+		addToHistory("monitor: created(" + dtCreated 
+				+ ") connected(" + connected
+				+ ") resting(" + resting
+				+ ") lastConnected(" + dtLastConnected
+				+ ") lastPing (" + dtLastPing 
+				+ ") lastOutboundActivity (" + dtLastOutbound
+				+ ") lastInboundActivity (" + dtLastInbound
+				+ ") lastReconnectActivity (" + dtLastReconnect
+				+ ")");
+            }
+
+            @Override
             public void connectionLost(Throwable cause) {
                 addToHistory("The Connection was lost.");
             }
@@ -110,12 +147,9 @@ public class PahoExampleActivity extends AppCompatActivity{
         MqttConnectOptions mqttConnectOptions = new MqttConnectOptions();
         mqttConnectOptions.setAutomaticReconnect(true);
         mqttConnectOptions.setCleanSession(false);
-
-
-
-
-
-
+	mqttConnectOptions.setAutomaticReconnectInterval(10);
+	mqttConnectOptions.setKeepAliveInterval(30);
+	mqttConnectOptions.setStateMonitorInterval(10);
 
         try {
             //addToHistory("Connecting to " + serverUri);

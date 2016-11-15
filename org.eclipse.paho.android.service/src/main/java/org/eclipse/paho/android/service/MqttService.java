@@ -325,10 +325,10 @@ public class MqttService extends Service implements MqttTraceHandler {
    */
   public void connect(String clientHandle, MqttConnectOptions connectOptions,
       String invocationContext, String activityToken)
-      throws MqttSecurityException, MqttException {
+      throws MqttSecurityException, MqttException, IllegalArgumentException {
 	  	MqttConnection client = getConnection(clientHandle);
+	  	traceDebug(TAG, "Connect to server, clientHandle(" + clientHandle + ")");
 	  	client.connect(connectOptions, invocationContext, activityToken);
-
   }
 
   /**
@@ -351,9 +351,11 @@ public class MqttService extends Service implements MqttTraceHandler {
    * @param clientHandle
    *            identifies the MqttConnection to use
    */
-  public void close(String clientHandle) {
+  public void close(String clientHandle) throws IllegalArgumentException {
     MqttConnection client = getConnection(clientHandle);
+    traceDebug(TAG, "Close, clientHandle(" + clientHandle + ")");
     client.close();
+    connections.remove(clientHandle);
   }
 
   /**
@@ -367,10 +369,12 @@ public class MqttService extends Service implements MqttTraceHandler {
    *            arbitrary identifier to be passed back to the Activity
    */
   public void disconnect(String clientHandle, String invocationContext,
-      String activityToken) {
+      String activityToken) throws IllegalArgumentException {
     MqttConnection client = getConnection(clientHandle);
+    traceDebug(TAG, "Disconect, clientHandle(" + clientHandle + ")");
     client.disconnect(invocationContext, activityToken);
-    connections.remove(clientHandle);
+    //BUG: move the following into close()
+    //connections.remove(clientHandle);
 
 
     // the activity has finished using us, so we can stop the service
@@ -392,10 +396,12 @@ public class MqttService extends Service implements MqttTraceHandler {
    *            arbitrary identifier to be passed back to the Activity
    */
   public void disconnect(String clientHandle, long quiesceTimeout,
-      String invocationContext, String activityToken) {
+      String invocationContext, String activityToken) throws IllegalArgumentException {
     MqttConnection client = getConnection(clientHandle);
+    traceDebug(TAG, "Disconect, clientHandle(" + clientHandle + ")");
     client.disconnect(quiesceTimeout, invocationContext, activityToken);
-    connections.remove(clientHandle);
+    //BUG: move the following into close()
+    //connections.remove(clientHandle);
 
     // the activity has finished using us, so we can stop the service
     // the activities are bound with BIND_AUTO_CREATE, so the service will
@@ -410,7 +416,7 @@ public class MqttService extends Service implements MqttTraceHandler {
    *            identifies the MqttConnection to use
    * @return true if the specified client is connected to an MQTT server
    */
-  public boolean isConnected(String clientHandle) {
+  public boolean isConnected(String clientHandle) throws IllegalArgumentException {
     MqttConnection client = getConnection(clientHandle);
     return client.isConnected();
   }
@@ -439,7 +445,7 @@ public class MqttService extends Service implements MqttTraceHandler {
   public IMqttDeliveryToken publish(String clientHandle, String topic,
       byte[] payload, int qos, boolean retained,
       String invocationContext, String activityToken)
-      throws MqttPersistenceException, MqttException {
+      throws MqttPersistenceException, MqttException, IllegalArgumentException {
     MqttConnection client = getConnection(clientHandle);
     return client.publish(topic, payload, qos, retained, invocationContext,
         activityToken);
@@ -464,7 +470,7 @@ public class MqttService extends Service implements MqttTraceHandler {
    */
   public IMqttDeliveryToken publish(String clientHandle, String topic,
       MqttMessage message, String invocationContext, String activityToken)
-      throws MqttPersistenceException, MqttException {
+      throws MqttPersistenceException, MqttException, IllegalArgumentException {
     MqttConnection client = getConnection(clientHandle);
     return client.publish(topic, message, invocationContext, activityToken);
   }
@@ -484,7 +490,7 @@ public class MqttService extends Service implements MqttTraceHandler {
    *            arbitrary identifier to be passed back to the Activity
    */
   public void subscribe(String clientHandle, String topic, int qos,
-      String invocationContext, String activityToken) {
+      String invocationContext, String activityToken) throws IllegalArgumentException {
     MqttConnection client = getConnection(clientHandle);
     client.subscribe(topic, qos, invocationContext, activityToken);
   }
@@ -504,7 +510,7 @@ public class MqttService extends Service implements MqttTraceHandler {
    *            arbitrary identifier to be passed back to the Activity
    */
   public void subscribe(String clientHandle, String[] topic, int[] qos,
-      String invocationContext, String activityToken) {
+      String invocationContext, String activityToken) throws IllegalArgumentException {
     MqttConnection client = getConnection(clientHandle);
     client.subscribe(topic, qos, invocationContext, activityToken);
   }
@@ -524,7 +530,9 @@ public class MqttService extends Service implements MqttTraceHandler {
    *            arbitrary identifier to be passed back to the Activity
    * @param messageListeners
    */
-  public void subscribe(String clientHandle, String[] topicFilters, int[] qos, String invocationContext, String activityToken, IMqttMessageListener[] messageListeners){
+  public void subscribe(String clientHandle, String[] topicFilters, int[] qos, 
+		  String invocationContext, String activityToken, 
+		  IMqttMessageListener[] messageListeners) throws IllegalArgumentException {
     MqttConnection client = getConnection(clientHandle);
     client.subscribe(topicFilters, qos, invocationContext, activityToken, messageListeners);
   }
@@ -542,7 +550,7 @@ public class MqttService extends Service implements MqttTraceHandler {
    *            arbitrary identifier to be passed back to the Activity
    */
   public void unsubscribe(String clientHandle, final String topic,
-      String invocationContext, String activityToken) {
+      String invocationContext, String activityToken) throws IllegalArgumentException {
     MqttConnection client = getConnection(clientHandle);
     client.unsubscribe(topic, invocationContext, activityToken);
   }
@@ -560,7 +568,7 @@ public class MqttService extends Service implements MqttTraceHandler {
    *            arbitrary identifier to be passed back to the Activity
    */
   public void unsubscribe(String clientHandle, final String[] topic,
-      String invocationContext, String activityToken) {
+      String invocationContext, String activityToken) throws IllegalArgumentException {
     MqttConnection client = getConnection(clientHandle);
     client.unsubscribe(topic, invocationContext, activityToken);
   }
@@ -583,12 +591,15 @@ public class MqttService extends Service implements MqttTraceHandler {
    * @param clientHandle identifies the MqttConnection
    * @return the MqttConnection identified by this handle
    */
-  private MqttConnection getConnection(String clientHandle) {
-    MqttConnection client = connections.get(clientHandle);
-    if (client == null) {
-      throw new IllegalArgumentException("Invalid ClientHandle");
-    }
-    return client;
+  private MqttConnection getConnection(String clientHandle) throws IllegalArgumentException{
+      if (clientHandle == null) {
+    	  throw new IllegalArgumentException("Invalid Null ClientHandle");
+	  }
+	  MqttConnection client = connections.get(clientHandle);
+	  if (client == null) {
+		  throw new IllegalArgumentException("Invalid ClientHandle");
+	  }
+      return client;
   }
 
   /**
@@ -891,17 +902,17 @@ public class MqttService extends Service implements MqttTraceHandler {
     client.setBufferOpts(bufferOpts);
   }
 
-  public int getBufferedMessageCount(String clientHandle){
+  public int getBufferedMessageCount(String clientHandle) throws IllegalArgumentException {
     MqttConnection client = getConnection(clientHandle);
     return client.getBufferedMessageCount();
   }
 
-  public MqttMessage getBufferedMessage(String clientHandle, int bufferIndex){
+  public MqttMessage getBufferedMessage(String clientHandle, int bufferIndex) throws IllegalArgumentException {
     MqttConnection client = getConnection(clientHandle);
     return client.getBufferedMessage(bufferIndex);
   }
 
-  public void deleteBufferedMessage(String clientHandle, int bufferIndex){
+  public void deleteBufferedMessage(String clientHandle, int bufferIndex) throws IllegalArgumentException {
     MqttConnection client = getConnection(clientHandle);
     client.deleteBufferedMessage(bufferIndex);
   }

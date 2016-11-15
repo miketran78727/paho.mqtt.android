@@ -1,6 +1,8 @@
-apply plugin: 'android-sdk-manager'
+//apply plugin: 'android-sdk-manager'
 apply plugin: 'com.android.library'
 apply plugin: 'maven-publish'
+
+
 
 android {
     compileSdkVersion rootProject.ext.compileSdkVersion
@@ -10,6 +12,15 @@ android {
         minSdkVersion 9
         targetSdkVersion 22
         testApplicationId "org.eclipse.paho.android.service.test"
+    }
+
+    sourceSets {
+        main {
+            java {
+                //points to an empty manifest, needed just to get the build to work
+                manifest.srcFile 'src/main/AndroidManifest.xml'
+            }
+        }
     }
     buildTypes {
         release {
@@ -25,7 +36,14 @@ android {
     lintOptions {
         abortOnError false
     }
+
+    packagingOptions {
+        exclude '/home/osboxes/github/innovapost/paho.mqtt.java/org.eclipse.paho.client.mqttv3/target/org.eclipse.paho.client.mqttv3-1.1.1-SNAPSHOT.jar'
+        exclude '/home/osboxes/github/innovapost/paho.mqtt.java/org.eclipse.paho.client.mqttv3/target/org.eclipse.paho.client.mqttv3-1.1.1-SNAPSHOT-sources.jar'
+    }
+
 }
+
 
 repositories {
     maven { url rootProject.ext.mavenUrl }
@@ -36,9 +54,11 @@ configurations {
 }
 
 dependencies {
-    compile "org.eclipse.paho:org.eclipse.paho.client.mqttv3:${rootProject.ext.clientVersion}"
+    //compile "org.eclipse.paho:org.eclipse.paho.client.mqttv3:${rootProject.ext.clientVersion}"
+    //compile fileTree(include: ['*.jar'], dir: '/home/osboxes/github/innovapost/paho.mqtt.java/org.eclipse.paho.client.mqttv3/target')
     compile "com.android.support:support-v4:${rootProject.ext.supportLibVersion}"
-    compile fileTree(include: ['*.jar'], dir: 'libs')
+    //compile fileTree(include: ['*.jar'], dir: 'libs')
+    provided fileTree(include: ['*.jar'], dir: 'libs')
 }
 
 android.libraryVariants.all { variant ->
@@ -58,6 +78,7 @@ android.libraryVariants.all { variant ->
 
 // Generate Sources Jar
 task("generateSourcesJar", type: Jar) {
+    println "Generate Sources Jar"
     from android.sourceSets.main.java.srcDirs
     classifier = 'sources'
 }
@@ -72,6 +93,7 @@ task("copyLibs", type: Copy) {
 
 // Renames the Release AAR file to a maven convention
 task("renameReleaseAAR", type: Copy) {
+    println "Rename Release AAR"
     from("$buildDir/outputs/aar")
     into("$buildDir/outputs/aar/")
     include('org.eclipse.paho.android.service-debug.aar')
@@ -80,13 +102,20 @@ task("renameReleaseAAR", type: Copy) {
 
 // Generate Plain Jar Version of library (good for legacy users)
 task("generateLibraryJar", type: Jar) {
+    println "Generate Library Jar"
     from("$buildDir/intermediates/classes/release")
 }
 
 // Generate Javadoc
 task("generateJavaDocJar", type: Jar, dependsOn: (rootProject.ext.serviceVersion.endsWith('-SNAPSHOT') ? 'generatedebugJavadoc' : 'generatereleaseJavadoc')){
+    println "Generate Java Doc Jar"
     from("$buildDir/docs/javadoc")
     classifier = 'javadoc'
+}
+
+task jar(type: Jar) {
+    //from android.sourceSets.main.java.srcDirs
+    from("$buildDir/intermediates/classes/release")
 }
 
 publishing {

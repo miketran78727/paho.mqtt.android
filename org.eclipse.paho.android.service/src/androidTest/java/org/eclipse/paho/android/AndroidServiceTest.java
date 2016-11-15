@@ -94,6 +94,31 @@ public class AndroidServiceTest extends AndroidTestCase {
             }
         }
     }
+    
+    /**
+     * Tests that a client can be constructed and that it will throw MqttException
+     * when disconnect() is called prior to a connect().
+     *
+     * @throws Exception
+     */
+    public void testDisconnect() throws Exception {
+    	
+    	final String METHOD = "testDisconnect";
+
+        IMqttAsyncClient mqttclient = null;
+        try {
+            mqttclient = new MqttAndroidClient(mContext,mqttServerURI, "testDisconnect");
+            disconnectToken = mqttclient.disconnect();
+
+        } catch (MqttException exception){
+        	System.out.println("PASSED: " + METHOD);
+        } catch (Exception e) {
+            fail("Failed: " + METHOD + " Exception = " + e);
+        } finally {
+        	fail("Failed: " + METHOD + " MqttException was expected");
+        }
+    }
+    
 
     /**
      * Tests isConnected() returns false after a disconnect() call.

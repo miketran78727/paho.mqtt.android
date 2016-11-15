@@ -42,6 +42,7 @@ interface MqttServiceConstants {
   static final String DISCONNECT_ACTION = "disconnect";
   static final String CONNECT_ACTION = "connect";
   static final String CONNECT_EXTENDED_ACTION = "connectExtended";
+  static final String MONITOR_EXTENDED_ACTION = "monitorExtended";
   static final String MESSAGE_ARRIVED_ACTION = "messageArrived";
   static final String MESSAGE_DELIVERED_ACTION = "messageDelivered";
   static final String ON_CONNECTION_LOST_ACTION = "onConnectionLost";
@@ -70,6 +71,16 @@ interface MqttServiceConstants {
                                             + MESSAGE_ID;
   static final String CALLBACK_RECONNECT = MqttService.TAG + ".reconnect";
   static final String CALLBACK_SERVER_URI = MqttService.TAG + ".serverURI";
+
+  static final String CALLBACK_MONITOR_CREATED = MqttService.TAG + ".created";
+  static final String CALLBACK_MONITOR_CONNECTED = MqttService.TAG + ".connected";
+  static final String CALLBACK_MONITOR_RESTING = MqttService.TAG + ".resting";
+  static final String CALLBACK_MONITOR_LAST_CONNECT = MqttService.TAG + ".lastConnected";
+  static final String CALLBACK_MONITOR_LAST_PING = MqttService.TAG + ".lastPing";
+  static final String CALLBACK_MONITOR_LAST_OUTBOUND_ACTIVITY = MqttService.TAG + ".lastOutboundActivity";
+  static final String CALLBACK_MONITOR_LAST_INBOUND_ACTIVITY = MqttService.TAG + ".lastInboundActivity";
+  static final String CALLBACK_MONITOR_LAST_RECONNECT_ACTIVITY = MqttService.TAG + ".lastReconnectActivity";
+
   static final String CALLBACK_MESSAGE_PARCEL = MqttService.TAG + ".PARCEL";
   static final String CALLBACK_TRACE_SEVERITY = MqttService.TAG
                                                 + ".traceSeverity";

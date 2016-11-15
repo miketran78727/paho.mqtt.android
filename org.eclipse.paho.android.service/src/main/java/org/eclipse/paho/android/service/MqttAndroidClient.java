@@ -26,6 +26,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.Properties;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
@@ -293,7 +294,8 @@ public class MqttAndroidClient extends BroadcastReceiver implements
 	 *             if the client is not disconnected.
 	 */
 	@Override
-	public void close() {
+	public void close() throws MqttException{
+		/*
 	 if (clientHandle == null) {
 		 System.out.println(serverURI);
 		 System.out.println(clientId);
@@ -301,7 +303,12 @@ public class MqttAndroidClient extends BroadcastReceiver implements
 		 System.out.println(persistence);
 		 clientHandle = mqttService.getClient(serverURI, clientId, myContext.getApplicationInfo().packageName,persistence);
 	 }
-	 mqttService.close(clientHandle);
+	 */
+		try {
+			mqttService.close(clientHandle);
+		} catch (IllegalArgumentException e) {
+			throw new MqttException(MqttException.REASON_CODE_CLIENT_EXCEPTION);
+		}
 	}
 	
 	/**
@@ -502,7 +509,15 @@ public class MqttAndroidClient extends BroadcastReceiver implements
 		IMqttToken token = new MqttTokenAndroid(this, null,
 				(IMqttActionListener) null);
 		String activityToken = storeToken(token);
-		mqttService.disconnect(clientHandle, null, activityToken);
+		try {
+			mqttService.disconnect(clientHandle, null, activityToken);
+		} catch (IllegalArgumentException e) {
+			if (isConnected()) {
+				throw new MqttException(MqttException.REASON_CODE_CLIENT_EXCEPTION);
+			} else {
+				throw new MqttException(MqttException.REASON_CODE_CLIENT_ALREADY_DISCONNECTED);
+			}
+		}
 		return token;
 	}
 
@@ -531,8 +546,16 @@ public class MqttAndroidClient extends BroadcastReceiver implements
 		IMqttToken token = new MqttTokenAndroid(this, null,
 				(IMqttActionListener) null);
 		String activityToken = storeToken(token);
-		mqttService.disconnect(clientHandle, quiesceTimeout, null,
+		try {
+			mqttService.disconnect(clientHandle, quiesceTimeout, null,
 				activityToken);
+		} catch (IllegalArgumentException e) {
+			if (isConnected()) {
+				throw new MqttException(MqttException.REASON_CODE_CLIENT_EXCEPTION);
+			} else {
+				throw new MqttException(MqttException.REASON_CODE_CLIENT_ALREADY_DISCONNECTED);
+			}
+		}
 		return token;
 	}
 
@@ -563,7 +586,15 @@ public class MqttAndroidClient extends BroadcastReceiver implements
 		IMqttToken token = new MqttTokenAndroid(this, userContext,
 				callback);
 		String activityToken = storeToken(token);
-		mqttService.disconnect(clientHandle, null, activityToken);
+		try {
+			mqttService.disconnect(clientHandle, null, activityToken);
+		} catch (IllegalArgumentException e) {
+			if (isConnected()) {
+				throw new MqttException(MqttException.REASON_CODE_CLIENT_EXCEPTION);
+			} else {
+				throw new MqttException(MqttException.REASON_CODE_CLIENT_ALREADY_DISCONNECTED);
+			}
+		}
 		return token;
 	}
 
@@ -616,8 +647,16 @@ public class MqttAndroidClient extends BroadcastReceiver implements
 		IMqttToken token = new MqttTokenAndroid(this, userContext,
 				callback);
 		String activityToken = storeToken(token);
-		mqttService.disconnect(clientHandle, quiesceTimeout, null,
+		try {
+			mqttService.disconnect(clientHandle, quiesceTimeout, null,
 				activityToken);
+		} catch (IllegalArgumentException e) {
+			if (isConnected()) {
+				throw new MqttException(MqttException.REASON_CODE_CLIENT_EXCEPTION);
+			} else {
+				throw new MqttException(MqttException.REASON_CODE_CLIENT_ALREADY_DISCONNECTED);
+			}
+		}
 		return token;
 	}
 
@@ -1322,6 +1361,18 @@ public class MqttAndroidClient extends BroadcastReceiver implements
 		this.callback = callback;
 
 	}
+
+	/* (non-Javadoc)
+	 * @see IMqttAsyncClient#getCallback()
+	 */
+	@Override
+	public MqttCallbackExtended getCallbackExtended() {
+		if(this.callback instanceof MqttCallbackExtended){
+			return (MqttCallbackExtended)this.callback;
+		} else {
+			return null;
+		}
+	}
 	
 	/**
 	 * identify the callback to be invoked when making tracing calls back into
@@ -1378,6 +1429,9 @@ public class MqttAndroidClient extends BroadcastReceiver implements
 		}
 		else if (MqttServiceConstants.CONNECT_EXTENDED_ACTION.equals(action)){
 			connectExtendedAction(data);
+		}
+		else if (MqttServiceConstants.MONITOR_EXTENDED_ACTION.equals(action)){
+			monitorExtendedAction(data);
 		}
 		else if (MqttServiceConstants.MESSAGE_ARRIVED_ACTION.equals(action)) {
 			messageArrivedAction(data);
@@ -1489,6 +1543,26 @@ public class MqttAndroidClient extends BroadcastReceiver implements
 		}
 
 	}
+
+	private void monitorExtendedAction(Bundle data){
+		// Monitor
+
+		if(callback instanceof MqttCallbackExtended){
+			Properties props = new Properties();
+			props.put("created", new Long(data.getString(MqttServiceConstants.CALLBACK_MONITOR_CREATED)));
+			props.put("connected", Boolean.valueOf(data.getString(MqttServiceConstants.CALLBACK_MONITOR_CONNECTED)));
+			props.put("resting", Boolean.valueOf(data.getString(MqttServiceConstants.CALLBACK_MONITOR_RESTING)));
+			props.put("lastConnected", new Long(data.getString(MqttServiceConstants.CALLBACK_MONITOR_LAST_CONNECT)));
+			props.put("lastPing", new Long(data.getString(MqttServiceConstants.CALLBACK_MONITOR_LAST_PING)));
+			props.put("lastOutboundActivity", new Long(data.getString(MqttServiceConstants.CALLBACK_MONITOR_LAST_OUTBOUND_ACTIVITY)));
+			props.put("lastInboundActivity", new Long(data.getString(MqttServiceConstants.CALLBACK_MONITOR_LAST_INBOUND_ACTIVITY)));
+			props.put("lastReconnectActivity", new Long(data.getString(MqttServiceConstants.CALLBACK_MONITOR_LAST_RECONNECT_ACTIVITY)));
+
+			((MqttCallbackExtended) callback).monitor(props);
+		}
+
+	}
+
 
 	/**
 	 * Common processing for many notifications
